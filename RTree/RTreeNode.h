@@ -34,23 +34,19 @@ public:
 	void search(const Rect<Dimensions>&, std::vector<Rect<Dimensions>>&);
 	void Insert(const Rect<Dimensions>&);
 	void Delete(const Rect<Dimensions>&, std::vector<Rect<Dimensions>>&);
-//	void foo() {
-//		std::cout << "CE?" << std::endl;
-//	}
 private:
 	friend class RTree<Dimensions>;
 	RTree<Dimensions>* rt;
 	RTreeNode<Dimensions>* p;
 	std::vector< RTreeNode<Dimensions>* > sons;
 	Rect<Dimensions> MBR;
-	//bool is_leaf;
-	//int level;
 
 	int ChooseLeaf(const Rect<Dimensions>&);
 	std::pair<int, int> find_seeds();
 	void addnewnode(RTreeNode<Dimensions>* newnode);
 	void SplitNode();
 	bool find_allndoestodelete(const Rect<Dimensions>&, std::vector<RTreeNode<Dimensions>*>&);
+	void UpdateMBR();
 };
 
 template<int Dimensions = 2>
@@ -84,18 +80,6 @@ void RTreeNode<Dimensions>::Insert(const Rect<Dimensions>& rec) {
 		MBR.LeftBottom.x[i] = MBR.LeftBottom.x[i] < rec.LeftBottom.x[i] ? MBR.LeftBottom.x[i] : rec.LeftBottom.x[i];
 		MBR.RightTop.x[i] = MBR.RightTop.x[i] > rec.RightTop.x[i] ? MBR.RightTop.x[i] : rec.RightTop.x[i];
 	}
-	// update MBR
-	/*for (int i = 0; i < Dimensions; ++i) {
-		MBR.LeftBottom.x[i] = Inf;
-		MBR.RightTop.x[i] = -Inf;
-	}
-	int k = sons.size();
-	for (int i = 0; i < k; ++i) {
-		for (int j = 0; j < Dimensions; ++j) {
-			MBR.LeftBottom.x[j] = MBR.LeftBottom.x[j] < sons[i]->MBR.LeftBottom.x[j] ? MBR.LeftBottom.x[j] : sons[i]->MBR.LeftBottom.x[j];
-			MBR.RightTop.x[j] = MBR.RightTop.x[j] > sons[i]->MBR.RightTop.x[j] ? MBR.RightTop.x[j] : sons[i]->MBR.RightTop.x[j];
-		}
-	}*/
 	if (sons.size() > rt->M)
 		SplitNode();
 }
@@ -110,6 +94,7 @@ void RTreeNode<Dimensions>::Delete(const Rect<Dimensions>& rec, std::vector<Rect
 			break;
 		}
 	}
+	p->UpdateMBR();
 
 	//find all remains
 	std::vector<RTreeNode<Dimensions>*> que;
@@ -290,6 +275,21 @@ bool RTreeNode<Dimensions>::find_allndoestodelete(const Rect<Dimensions>& rec, s
 		return true;
 	}
 	return false;
+}
+
+template<int Dimensions = 2>
+void RTreeNode<Dimensions>::UpdateMBR() {
+	for (int i = 0; i < Dimensions; ++i) {
+		MBR.LeftBottom.x[i] = Inf;
+		MBR.RightTop.x[i] = -Inf;
+	}
+	int k = sons.size();
+	for (int i = 0; i < k; ++i) {
+		for (int j = 0; j < Dimensions; ++j) {
+			MBR.LeftBottom.x[j] = MBR.LeftBottom.x[j] < sons[i]->MBR.LeftBottom.x[j] ? MBR.LeftBottom.x[j] : sons[i]->MBR.LeftBottom.x[j];
+			MBR.RightTop.x[j] = MBR.RightTop.x[j] > sons[i]->MBR.RightTop.x[j] ? MBR.RightTop.x[j] : sons[i]->MBR.RightTop.x[j];
+		}
+	}
 }
 
 }

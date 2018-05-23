@@ -27,12 +27,12 @@ int check(const Rect<2>& rec) {
 }
 
 int main() {
-	//srand(time(0));
+	srand(time(0));
 	RTree<> rtree(4);
 
 	memset(flag, true, sizeof(flag));
 	for (int i = 0; i < N; ++i) {
-		p[i].x[0] = rand() % 1000;
+		p[i].x[0] = rand() % 10000;
 		p[i].x[1] = rand() % 1000;
 		Rect<> rec;
 		rec.LeftBottom = p[i];
@@ -40,10 +40,10 @@ int main() {
 		rtree.Insert(rec);
 	}
 	while (true){
-		int x0 = rand() % 1000;
-		int x1 = rand() % 1000;
-		int x2 = rand() % 1000;
-		int x3 = rand() % 1000;
+		int x0 = rand() % 10000;
+		int x1 = rand() % 10000;
+		int x2 = rand() % 10000;
+		int x3 = rand() % 10000;
 		if (x0 > x1) swap(x0, x1);
 		if (x2 > x3) swap(x2, x3);
 
