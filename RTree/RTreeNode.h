@@ -52,7 +52,8 @@ private:
 template<int Dimensions = 2>
 void RTreeNode<Dimensions>::search(const Rect<Dimensions>& rec, std::vector<Rect<Dimensions>>& res) {
 	if (sons.size() == 0) {
-		res.push_back(MBR);
+		if (Cover(rec, MBR))
+			res.push_back(MBR);
 		return;
 	}
 	for (RTreeNode<Dimensions>* son : sons) {
