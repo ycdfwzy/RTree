@@ -1,5 +1,6 @@
 #pragma once
 #include <iostream>
+#include <cstring>
 
 namespace MyRTree {
 
@@ -9,6 +10,10 @@ template<int Dimensions = 2>
 class Point {
 public:
 	double x[Dimensions];
+	void rand() {
+		for (int i = 0; i < Dimensions; ++i)
+			x[i] = double(std::rand());
+	}
 	void write() {
 		for (int i = 0; i < Dimensions; ++i)
 			std::cout << x[i] << " ";
@@ -19,6 +24,12 @@ public:
 template<int Dimensions = 2>
 class Rect {
 public:
+	Rect() {}
+	Rect(const Point<Dimensions>& lb, const Point<Dimensions>& rt) {
+		LeftBottom = lb;
+		RightTop = rt;
+	}
+
 	Point<Dimensions> LeftBottom;
 	Point<Dimensions> RightTop;
 	void write() {
@@ -26,6 +37,15 @@ public:
 		LeftBottom.write();
 		std::cout << "RightTop:   ";
 		RightTop.write();
+	}
+
+	void rand() {
+		LeftBottom.rand();
+		RightTop.rand();
+		for (int i = 0; i < Dimensions; ++i) {
+			if (LeftBottom.x[i] > RightTop.x[i])
+				std::swap(LeftBottom.x[i], RightTop.x[i]);
+		}
 	}
 };
 

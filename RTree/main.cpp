@@ -1,144 +1,72 @@
 #include "Geometry.h"
 #include "RTree.h"
 #include "RTreeNode.h"
+#include "windows.h"
 #include <iostream>
+#include <fstream>
 #include <algorithm>
 #include <ctime>
 
 using namespace MyRTree;
 using namespace std;
 
-const int N = 10000;
+const int querys = 5000;
 
-Point<2> p[N];
-bool flag[N];
+template<int features>
+double Search_test_time(RTree<features>& rtree, const Rect<features>& rect, vector<Rect<features>>& res) {
 
-int check(const Rect<2>& rec) {
-	int ret = 0;
-	for (int i = 0; i < N; ++i)
-	if (flag[i]){
-		if (p[i].x[0] >= rec.LeftBottom.x[0] && p[i].x[0] <= rec.RightTop.x[0] &&
-			p[i].x[1] >= rec.LeftBottom.x[1] && p[i].x[1] <= rec.RightTop.x[1]) {
-			ret++;
-			//p[i].write();
-		}
-	}
-	return ret;
+
+	LARGE_INTEGER winFreq;
+	LARGE_INTEGER winStart, winNow;
+	if (!QueryPerformanceFrequency(&winFreq))
+		cout << "QueryPerformanceFrequency failed" << endl;
+
+	if (!QueryPerformanceCounter(&winStart))
+		cout << "QueryPerformanceCounter failed" << endl;
+	rtree.search(rect, res);
+	if (!QueryPerformanceCounter(&winNow))
+		cout << "QueryPerformanceCounter failed" << endl;
+	double time_cnt = (double)(winNow.QuadPart - winStart.QuadPart) / (double)winFreq.QuadPart;
+	return time_cnt;
 }
+
+template<int features>
+double user_test(int N, int M) {
+	Point<features> p;
+	Rect<features> rect;
+	RTree<features> rtree(M);
+	for (int i = 0; i < N; ++i) {
+		p.rand();
+		rect.LeftBottom = p;
+		rect.RightTop = p;
+		rtree.Insert(rect);
+	}
+
+	double tot = 0;
+	vector<Rect<features>> res;
+	for (int i = 0; i < querys; ++i) {
+		rect.rand();
+		res.clear();
+		tot += Search_test_time<features>(rtree, rect, res);
+	}
+	//tot /= querys;
+	return tot;
+}
+
+int N[6] = { 1000,2000,3000,4000,5000,100000 };
+double t[6][5];
 
 int main() {
 	srand(time(0));
-
-	bool wrong = true;
-	while (wrong) {
-		RTree<> rtree(4);
-		//cout << "NEW" << endl;
-		memset(flag, true, sizeof(flag));
-		for (int i = 0; i < N; ++i) {
-			p[i].x[0] = rand() % 10000;
-			p[i].x[1] = rand() % 1000;
-			Rect<> rec;
-			rec.LeftBottom = p[i];
-			rec.RightTop = p[i];
-			rtree.Insert(rec);
-		}
-		for (int w = 0; w < 100; ++w) {
-			int x0 = rand() % 10000;
-			int x1 = rand() % 10000;
-			int x2 = rand() % 10000;
-			int x3 = rand() % 10000;
-			if (x0 > x1) swap(x0, x1);
-			if (x2 > x3) swap(x2, x3);
-
-			Rect<> rec;
-			Point<> q;
-			q.x[0] = x0; q.x[1] = x2;
-			rec.LeftBottom = q;
-			q.x[0] = x1; q.x[1] = x3;
-			rec.RightTop = q;
-
-			if (rand() % 3 < 2) {
-				//cout << "Insert:" << endl;
-				//rec.write();
-				std::vector<Rect<>> res;
-				rtree.search(rec, res);
-				int t = check(rec);
-				if (t == res.size()) {
-					cout << "Right!" << endl;
-					cout << endl;
-					continue;
-				}
-				/*
-				cout << endl;
-				for (int i = 0; i < res.size(); ++i)
-					res[i].LeftBottom.write();
-				cout << endl;
-
-				for (int i = 0; i < N; ++i)
-					p[i].write();
-				cout << res.size() << endl;
-				cout << t << endl;
-
-				rec.write();
-
-				cout << w << endl;
-				*/
-				cout << "Wrong!" << endl;
-				cout << endl;
-				wrong = false;
-				break;
-			}
-			else
-			{
-				//cout << "Delete:" << endl;
-				//rec.write();
-				//cout << endl;
-				rtree.Delete(rec);
-
-				for (int i = 0; i < N; ++i) {
-					if (p[i].x[0] < rec.LeftBottom.x[0] || p[i].x[0] > rec.RightTop.x[0])
-						continue;
-					if (p[i].x[1] < rec.LeftBottom.x[1] || p[i].x[1] > rec.RightTop.x[1])
-						continue;
-					flag[i] = false;
-				}
-			}
-		}
+	for (int i = 0; i < 6; ++i) {
+		t[i][0] = user_test<4>(N[i], 4);
+		t[i][1] = user_test<8>(N[i], 8);
+		t[i][2] = user_test<16>(N[i], 16);
+		t[i][3] = user_test<32>(N[i], 32);
+		t[i][4] = user_test<64>(N[i], 64);
 	}
-	/*
-	for (int i = 0; i < 10; ++i) {
-		Point<> p;
-		p.x[0] = p.x[1] = i;
-		Rect<> rec;
-		rec.LeftBottom = p;
-		rec.RightTop = p;
-		rtree.Insert(rec);
-	}
-	
-	Rect<> rec;
-	Point<> p;
-	p.x[0] = 1; p.x[1] = 1;
-	rec.LeftBottom = p;
-	p.x[0] = 4; p.x[1] = 4;
-	rec.RightTop = p;
-	std::vector<Rect<>> res;
-	rtree.search(rec, res);
-	std::cout << res.size() << std::endl;
-	res.clear();
-
-	p.x[0] = 2; p.x[1] = 2;
-	rec.LeftBottom = p;
-	p.x[0] = 6; p.x[1] = 6;
-	rec.RightTop = p;
-	rtree.Delete(rec);
-	
-	p.x[0] = 1; p.x[1] = 1;
-	rec.LeftBottom = p;
-	p.x[0] = 4; p.x[1] = 4;
-	rec.RightTop = p;
-	rtree.search(rec, res);
-	std::cout << res.size() << std::endl;
-	res.clear();
-	*/
+	for (int i = 0; i < 6; ++i)
+		for (int j = 0; j < 5; ++j)
+			cout << N[i] << " " << (1<<(j+2)) << " " << t[i][j] << " sec" << endl;
 	return 0;
 }
