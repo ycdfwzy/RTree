@@ -59,11 +59,11 @@ double t[6][5];
 int main() {
 	srand(time(0));
 	for (int i = 0; i < 6; ++i) {
-		t[i][0] = user_test<4>(N[i], 4);
-		t[i][1] = user_test<8>(N[i], 8);
-		t[i][2] = user_test<16>(N[i], 16);
-		t[i][3] = user_test<32>(N[i], 32);
-		t[i][4] = user_test<64>(N[i], 64);
+		t[i][0] = user_test<4>(N[i], 10);
+		t[i][1] = user_test<8>(N[i], 10);
+		t[i][2] = user_test<16>(N[i], 10);
+		t[i][3] = user_test<32>(N[i], 10);
+		t[i][4] = user_test<64>(N[i], 10);
 	}
 	for (int i = 0; i < 6; ++i)
 		for (int j = 0; j < 5; ++j)

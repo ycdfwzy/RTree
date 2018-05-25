@@ -150,11 +150,9 @@ int RTreeNode<Dimensions>::ChooseLeaf(const Rect<Dimensions>& rec) {
 template<int Dimensions = 2>
 std::pair<int, int> RTreeNode<Dimensions>::find_seeds() {
 	int N = sons.size();
-	//double MBR_d = 1;
-	//for (int i = 0; i < Dimensions; ++i)
-	//	MBR_d *= (MBR.RightTop.x[i] - MBR.LeftBottom.x[i]);
 
 	//naive method
+	/*
 	double max_delta = -Inf;
 	std::pair<int, int> ret;
 	for (int i = 0; i < N; ++i)
@@ -175,7 +173,23 @@ std::pair<int, int> RTreeNode<Dimensions>::find_seeds() {
 				ret = std::make_pair(i, j);
 			}
 		}
-
+	*/
+	//maybe better method
+	double max = -Inf;
+	std::pair<int, int> ret;
+	for (int i = 0; i < N; ++i)
+		for (int j = i + 1; j < N; ++j) {
+			double d = 0;
+			for (int l = 0; l < Dimensions; ++l) {
+				double x1 = (sons[i]->MBR.LeftBottom.x[l] + sons[i]->MBR.RightTop.x[l]) / 2;
+				double x2 = (sons[j]->MBR.LeftBottom.x[l] + sons[j]->MBR.RightTop.x[l]) / 2;
+				d += (x1 - x2)*(x1 - x2);
+			}
+			if (d > max) {
+				max = d;
+				ret = std::make_pair(i, j);
+			}
+		}
 	return ret;
 }
 
