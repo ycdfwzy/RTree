@@ -1,6 +1,8 @@
 #pragma once
 #include <iostream>
 #include <cstring>
+#include <cmath>
+#include <sstream>
 
 namespace MyRTree {
 
@@ -14,10 +16,56 @@ public:
 		for (int i = 0; i < Dimensions; ++i)
 			x[i] = double(std::rand());
 	}
+	void move(double d) {
+		for (int i = 0; i < Dimensions; ++i)
+			x[i] += d;
+	}
+	void decrease(const Point& p) {
+		for (int i = 0; i < Dimensions; ++i)
+			x[i] -= p.x[i];
+	}
+	void increase(const Point& p) {
+		for (int i = 0; i < Dimensions; ++i)
+			x[i] += p.x[i];
+	}
+	void copy(const Point& p) {
+		//for (int i = 0; i < Dimensions; ++i)
+		//	x[i] = p.x[i];
+		std::memcpy(x, p.x, sizeof(double)*Dimensions);
+	}
 	void write() {
 		for (int i = 0; i < Dimensions; ++i)
 			std::cout << x[i] << " ";
 		std::cout << std::endl;
+	}
+	double rank2() const {
+		double r = 0;
+		for (int i = 0; i < Dimensions; ++i)
+			r += x[i] * x[i];
+		return r;
+	}
+	void fromString(const std::string st) {
+		int len = st.length();
+
+		for (int k = 0, i = 0; k < Dimensions; ++k) {
+			while (i < len && st[i] != '.' && (st[i] < '0' || st[i] > '9')) ++i;
+			std::string s;
+			s.clear();
+			while (i < len && (st[i] == '.' || (st[i] >= '0' && st[i] <= '9'))) {
+				s.push_back(st[i]);
+				++i;
+			}
+			x[k] = std::atof(s.c_str());
+		}
+	}
+	std::string toString() const {
+		std::string ret;
+		for (int i = 0; i < Dimensions; ++i) {
+			std::ostringstream oss;
+			oss << x[i];
+			ret += oss.str() + " ";
+		}
+		return ret;
 	}
 };
 
