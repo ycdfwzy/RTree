@@ -29,8 +29,6 @@ public:
 			x[i] += p.x[i];
 	}
 	void copy(const Point& p) {
-		//for (int i = 0; i < Dimensions; ++i)
-		//	x[i] = p.x[i];
 		std::memcpy(x, p.x, sizeof(double)*Dimensions);
 	}
 	void write() {

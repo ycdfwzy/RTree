@@ -14,7 +14,6 @@ public:
 	RTree(int M_) : M(M_) {
 		root = new RTreeNode<Dimensions>(NULL, this);
 		leaves = 0;
-		//std::cout << M << std::endl;
 	}
 
 	~RTree() {
@@ -23,6 +22,8 @@ public:
 
 	void search(const Rect<Dimensions>&, std::vector<Rect<Dimensions>>&);
 	void search(const Rect<Dimensions>&, std::vector<Point<Dimensions>>&);
+	void search(const Rect<Dimensions>&, std::vector<Rect<Dimensions>>&, int&);
+	void search(const Rect<Dimensions>&, std::vector<Point<Dimensions>>&, int&);
 	void Insert(const Rect<Dimensions>&);
 	void Insert(const Point<Dimensions>&);
 	void Delete(const Rect<Dimensions>&);
@@ -50,6 +51,24 @@ void RTree<Dimensions>::search(const Rect<Dimensions>& rec, std::vector<Point<Di
 	}
 	tmp.clear();
 }
+
+template<int Dimensions = 2>
+void RTree<Dimensions>::search(const Rect<Dimensions>& rec, std::vector<Rect<Dimensions>>& res, int& access_times) {
+	access_times++;
+	root->search(rec, res, access_times);
+}
+
+template<int Dimensions = 2>
+void RTree<Dimensions>::search(const Rect<Dimensions>& rec, std::vector<Point<Dimensions>>& res, int& access_times) {
+	std::vector<Rect<Dimensions>> tmp;
+	tmp.clear();
+	search(rec, tmp, access_times);
+	for (Rect<Dimensions>& r : tmp) {
+		res.push_back(r.LeftBottom);
+	}
+	tmp.clear();
+}
+
 
 template<int Dimensions = 2>
 void RTree<Dimensions>::Insert(const Rect<Dimensions>& rec) {
@@ -91,11 +110,13 @@ void RTree<Dimensions>::Delete(const Rect<Dimensions>& rec) {
 		root = newroot;
 	}
 	//toDelete.clear();
+	if (leaves != root->rects.size())
+		cout << "??" << endl;
 }
 
 template<int Dimensions = 2>
 void RTree<Dimensions>::KNN(int K, const Point<Dimensions>& p, std::vector<Point<Dimensions>>& res) {
-	double L = 0, R = Inf;
+	double L = 0, R = 2;
 	double mid = (L + R) / 2;
 	Rect<Dimensions> rec;
 	while (L < R) {
@@ -107,7 +128,7 @@ void RTree<Dimensions>::KNN(int K, const Point<Dimensions>& p, std::vector<Point
 		if (res.size() < K) {
 			L = mid;
 		} else
-		if (res.size() > 5 * K) {
+		if (res.size() > 10 * K) {
 			R = mid;
 		}
 		else
