@@ -14,7 +14,7 @@ public:
 	double x[Dimensions];
 	void rand() {
 		for (int i = 0; i < Dimensions; ++i)
-			x[i] = double(std::rand());
+			x[i] = double(std::rand())/(double)(1<<16);
 	}
 	void move(double d) {
 		for (int i = 0; i < Dimensions; ++i)

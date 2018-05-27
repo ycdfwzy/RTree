@@ -25,7 +25,7 @@ const int D_gradient = 64;
 const int D_moment = 9;
 const int D_color = 64;
 const int D_gray = 64;
-const int D_lbp = 24;
+const int D_lbp = 36;
 
 unordered_map<string, Point<D_gradient>> string2point_gradient;
 unordered_map<string, Point<D_moment>> string2point_moment;
@@ -66,8 +66,10 @@ int user_test(int N, int M) {
 	Point<features> p;
 	Rect<features> rect;
 	RTree<features> rtree(M);
+	Point<features> *point = new Point<features>[N];
 	for (int i = 0; i < N; ++i) {
 		p.rand();
+		point[i] = p;
 		rect.LeftBottom = p;
 		rect.RightTop = p;
 		rtree.Insert(rect);
@@ -78,20 +80,25 @@ int user_test(int N, int M) {
 	vector<Rect<features>> res;
 	for (int i = 0; i < querys; ++i) {
 		//rect.rand();
+		//for (int j = 0; j < features; ++j)
+		//	p.x[j] = 0;
+		//rect.LeftBottom = p;
+		//for (int j = 0; j < features; ++j)
+		//	p.x[j] = 30000;
+		//rect.RightTop = p;
+		rect.LeftBottom = point[rand() % N];
+		rect.RightTop = point[rand() % N];
 		for (int j = 0; j < features; ++j)
-			//p.x[j] = rand() % 1000;
-			p.x[j] = 0;
-		rect.LeftBottom = p;
-		for (int j = 0; j < features; ++j)
-			//p.x[j] = rand() % 1000 + 20000;
-			p.x[j] = 30000;
-		rect.RightTop = p;
+			if (rect.LeftBottom.x[j] > rect.RightTop.x[j])
+				swap(rect.LeftBottom.x[j], rect.RightTop.x[j]);
+
 		res.clear();
 		rtree.search(rect, res, tot);
 		tot_res_size += res.size();
 		//tot += Search_test_time<features>(rtree, rect, res);
 	}
 	//tot /= querys;
+	delete[] point;
 	return tot / (tot_res_size / 100);
 }
 
@@ -103,7 +110,8 @@ void test_corectness_ratio(RTree<Dimensions>& rtree,
 	int hit = 0;
 	int miss = 0;
 	for (auto p : string2point) {
-		//cout << p.first << endl;
+		//cout << " " << p.first << endl;
+		
 		vector<Point<Dimensions>> res;
 		string S(p.first);
 		while (S.back() != '_')
@@ -138,6 +146,7 @@ void test_corectness_ratio(RTree<Dimensions>& rtree,
 			else miss++;
 		}
 		hit--;
+
 	}
 	cout << "total hit: " << hit << endl;
 	cout << "total miss: " << miss << endl;
@@ -170,9 +179,7 @@ void test_correctness_main() {
 int N[6] = { 1000,2000,3000,4000,5000,10000 };
 int t[6][5];
 bool v[10000];
-Point<> p[10000];
-string name;
-
+/*
 int check(const Rect<>& rect) {
 	int ret = 0;
 	for (int i = 0; i < 1000; ++i)
@@ -184,25 +191,44 @@ int check(const Rect<>& rect) {
 	}
 	return ret;
 }
-
+*/
 template<int Dimensions = 2>
 void problem_3(const string& filename, unordered_map<string, Point<Dimensions>>& string2point,
 	unordered_map<string, string>& point2string, RTree<Dimensions>& rtree) {
 	Point<Dimensions> p;
+	string name;
 	ifstream input(filename);
-	for (int j = 0; j < 5613; ++j) {
-		getline(input, name);
-		cout << name << endl;
+	if (input.is_open()) {
+		for (int j = 0; j < 5613; ++j) {
+			getline(input, name);
+			cout << name << endl;
 
-		string svec;
-		getline(input, svec);
-		p.fromString(svec);
+			string svec;
+			getline(input, svec);
+			p.fromString(svec);
+			point[j].copy(p);
 
-		point2string.insert(make_pair(p.toString(), name));
-		string2point.insert(make_pair(name, p));
-		rtree.Insert(p);
+			point2string.insert(make_pair(p.toString(), name));
+			string2point.insert(make_pair(name, p));
+			rtree.Insert(p);
+		}
+		input.close();
 	}
-	input.close();
+}
+
+void problem_1() {
+	ofstream out("prob1.txt");
+	for (int i = 0; i < 6; ++i) {
+		t[i][0] = user_test<4>(N[i], 10);
+		t[i][1] = user_test<8>(N[i], 10);
+		t[i][2] = user_test<16>(N[i], 10);
+		t[i][3] = user_test<32>(N[i], 10);
+		t[i][4] = user_test<64>(N[i], 10);
+	}
+	for (int i = 0; i < 6; ++i)
+		for (int j = 0; j < 5; ++j)
+			out << N[i] << " " << (1 << (j + 2)) << " " << t[i][j] << endl;
+	out.close();
 }
 
 int main() {
@@ -259,18 +285,8 @@ int main() {
 			}
 		}
 	*/
-	/*
-	for (int i = 0; i < 6; ++i) {
-		t[i][0] = user_test<4>(N[i], 10);
-		t[i][1] = user_test<8>(N[i], 10);
-		t[i][2] = user_test<16>(N[i], 10);
-		t[i][3] = user_test<32>(N[i], 10);
-		t[i][4] = user_test<64>(N[i], 10);
-	}
-	for (int i = 0; i < 6; ++i)
-		for (int j = 0; j < 5; ++j)
-			cout << N[i] << " " << (1<<(j+2)) << " " << t[i][j] << endl;
-	*/
+	problem_1();
+
 	/*
 	RTree<2> rtree(4);
 	Point<2> p;
@@ -288,67 +304,8 @@ int main() {
 	for (int i = 0; i < res.size(); ++i)
 		cout << res[i].x[0] << " " << res[i].x[1] << endl;
 	*/
-	
+
 	/*
-	ifstream input("allfeatures.txt");
-	for (int j = 0; j < 5613; ++j) {
-		getline(input, name);
-		cout << name << endl;
-		
-		Point<D_gradient> gradient;
-		Point<D_moment> moment;
-		Point<D_color> color;
-		Point<D_gray> gray;
-
-		string svec;
-		getline(input, svec);
-		gradient.fromString(svec);
-	
-		getline(input, svec);
-		moment.fromString(svec);
-	
-		getline(input, svec);
-		color.fromString(svec);
-	
-		getline(input, svec);
-		gray.fromString(svec);
-		
-		string2point_gradient.insert(make_pair(name, gradient));
-		string2point_moment.insert(make_pair(name, moment));
-		string2point_color.insert(make_pair(name, color));
-		string2point_gray.insert(make_pair(name, gray));
-		
-		
-		point2string_gradient.insert(make_pair(gradient.toString(), name));
-		point2string_moment.insert(make_pair(moment.toString(), name));
-		point2string_color.insert(make_pair(color.toString(), name));
-		point2string_gray.insert(make_pair(gray.toString(), name));
-		
-		rtree_gradient.Insert(gradient);
-		rtree_moment.Insert(moment);
-		rtree_color.Insert(color);
-		rtree_gray.Insert(gray);
-	}
-	input.close();
-	*/
-/*
-	ifstream input("lbp.txt");
-	for (int j = 0; j < 5613; ++j) {
-		getline(input, name);
-		cout << name << endl;
-		Point<D_lbp> lbp;
-
-		string svec;
-		getline(input, svec);
-		lbp.fromString(svec);
-
-		point2string_lbp.insert(make_pair(lbp.toString(), name));
-		string2point_lbp.insert(make_pair(name, lbp));
-		rtree_lbp.Insert(lbp);
-	}
-	input.close();
-*/
-	
 	problem_3<D_gradient>(file_gradient, string2point_gradient, point2string_gradient, rtree_gradient);
 	problem_3<D_moment>(file_moment, string2point_moment, point2string_moment, rtree_moment);
 	problem_3<D_color>(file_color, string2point_color, point2string_color, rtree_color);
@@ -370,6 +327,6 @@ int main() {
 	point2string_color.clear();
 	point2string_gray.clear();
 	point2string_lbp.clear();
-	
+	*/
 	return 0;
 }
