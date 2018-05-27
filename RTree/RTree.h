@@ -110,8 +110,6 @@ void RTree<Dimensions>::Delete(const Rect<Dimensions>& rec) {
 		root = newroot;
 	}
 	//toDelete.clear();
-	if (leaves != root->rects.size())
-		cout << "??" << endl;
 }
 
 template<int Dimensions = 2>

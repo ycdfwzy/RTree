@@ -15,11 +15,23 @@ using namespace std;
 
 const int querys = 1000;
 
-unordered_map<string, Point<350>> string2point_gradient;
-unordered_map<string, Point<9>> string2point_moment;
-unordered_map<string, Point<256>> string2point_color;
-unordered_map<string, Point<256>> string2point_gray;
-unordered_map<string, Point<36>> string2point_lbp;
+const string file_gradient = "gradient.txt";
+const string file_moment = "moment.txt";
+const string file_color = "color.txt";
+const string file_gray = "gray.txt";
+const string file_lbp = "lbp.txt";
+
+const int D_gradient = 64;
+const int D_moment = 9;
+const int D_color = 64;
+const int D_gray = 64;
+const int D_lbp = 24;
+
+unordered_map<string, Point<D_gradient>> string2point_gradient;
+unordered_map<string, Point<D_moment>> string2point_moment;
+unordered_map<string, Point<D_color>> string2point_color;
+unordered_map<string, Point<D_gray>> string2point_gray;
+unordered_map<string, Point<D_lbp>> string2point_lbp;
 
 unordered_map<string, string> point2string_gradient;
 unordered_map<string, string> point2string_moment;
@@ -27,16 +39,14 @@ unordered_map<string, string> point2string_color;
 unordered_map<string, string> point2string_gray;
 unordered_map<string, string> point2string_lbp;
 
-RTree<350> rtree_gradient(10);
-RTree<9> rtree_moment(10);
-RTree<256> rtree_color(10);
-RTree<256> rtree_gray(10);
-RTree<36> rtree_lbp(10);
+RTree<D_gradient> rtree_gradient(10);
+RTree<D_moment> rtree_moment(10);
+RTree<D_color> rtree_color(10);
+RTree<D_gray> rtree_gray(10);
+RTree<D_lbp> rtree_lbp(10);
 
 template<int features>
 double Search_test_time(RTree<features>& rtree, const Rect<features>& rect, vector<Rect<features>>& res) {
-
-
 	LARGE_INTEGER winFreq;
 	LARGE_INTEGER winStart, winNow;
 	if (!QueryPerformanceFrequency(&winFreq))
@@ -64,15 +74,25 @@ int user_test(int N, int M) {
 	}
 
 	int tot = 0;
+	int tot_res_size = 0;
 	vector<Rect<features>> res;
 	for (int i = 0; i < querys; ++i) {
-		rect.rand();
+		//rect.rand();
+		for (int j = 0; j < features; ++j)
+			//p.x[j] = rand() % 1000;
+			p.x[j] = 0;
+		rect.LeftBottom = p;
+		for (int j = 0; j < features; ++j)
+			//p.x[j] = rand() % 1000 + 20000;
+			p.x[j] = 30000;
+		rect.RightTop = p;
 		res.clear();
 		rtree.search(rect, res, tot);
+		tot_res_size += res.size();
 		//tot += Search_test_time<features>(rtree, rect, res);
 	}
 	//tot /= querys;
-	return tot / querys;
+	return tot / (tot_res_size / 100);
 }
 
 template<int Dimensions = 2>
@@ -92,12 +112,23 @@ void test_corectness_ratio(RTree<Dimensions>& rtree,
 		//rtree.KNN(threshold, p.second, res);
 		Rect<Dimensions> rect;
 		rect.LeftBottom = p.second;
-		rect.LeftBottom.move(-0.1);
+		rect.LeftBottom.move(-0.05);
 		rect.RightTop = p.second;
-		rect.RightTop.move(0.1);
+		rect.RightTop.move(0.05);
 		rtree.search(rect, res);
 
-		for (auto s : res) {
+		int N = res.size();
+		for (Point<Dimensions>& rp : res)
+			rp.decrease(p.second);
+		std::sort(res.begin(), res.end(), [](const Point<Dimensions>& p1, const Point<Dimensions>& p2) {
+			return p1.rank2() < p2.rank2();
+		});
+		for (Point<Dimensions>& rp : res)
+			rp.increase(p.second);
+
+		for (int i = 0; i < 100 && i < N; ++i) {
+		//for (auto s : res) {
+			Point<Dimensions>& s = res[i];
 			string pat(point2string[s.toString()]);
 			while (pat.back() != '_')
 				pat.pop_back();
@@ -116,57 +147,27 @@ void test_corectness_ratio(RTree<Dimensions>& rtree,
 void test_correctness_main() {
 	/*
 	cout << "Gradient: " << endl;
-	cout << "threshold = 10" << endl;
-	test_corectness_ratio<350>(rtree_gradient, string2point_gradient, point2string_gradient, 10);
+	test_corectness_ratio<D_gradient>(rtree_gradient, string2point_gradient, point2string_gradient, 10);
 	cout << endl;
 
 	cout << "Moment: " << endl;
-	cout << "threshold = 10" << endl;
-	test_corectness_ratio<9>(rtree_moment, string2point_moment, point2string_moment, 10);
+	test_corectness_ratio<D_moment>(rtree_moment, string2point_moment, point2string_moment, 10);
 	cout << endl;
 	
 	cout << "Color: " << endl;
-	cout << "threshold = 10" << endl;
-	test_corectness_ratio<256>(rtree_color, string2point_color, point2string_color, 10);
+	test_corectness_ratio<D_color>(rtree_color, string2point_color, point2string_color, 10);
 	cout << endl;
 
 	cout << "Gray: " << endl;
-	cout << "threshold = 10" << endl;
-	test_corectness_ratio<256>(rtree_gray, string2point_gray, point2string_gray, 10);
+	test_corectness_ratio<D_gray>(rtree_gray, string2point_gray, point2string_gray, 10);
 	cout << endl;
 	*/
 	cout << "LBP: " << endl;
-	cout << "threshold = 10" << endl;
-	test_corectness_ratio<36>(rtree_lbp, string2point_lbp, point2string_lbp, 10);
-	cout << endl;
-	/*
-	cout << "Gradient: " << endl;
-	cout << "threshold = 20" << endl;
-	test_corectness_ratio<350>(rtree_gradient, string2point_gradient, point2string_gradient, 20);
-	cout << endl;
-	
-	cout << "Moment: " << endl;
-	cout << "threshold = 20" << endl;
-	test_corectness_ratio<9>(rtree_moment, string2point_moment, point2string_moment, 20);
-	cout << endl;
-	
-	cout << "Color: " << endl;
-	cout << "threshold = 20" << endl;
-	test_corectness_ratio<256>(rtree_color, string2point_color, point2string_color, 20);
-	cout << endl;
-
-	cout << "Gray: " << endl;
-	cout << "threshold = 20" << endl;
-	test_corectness_ratio<256>(rtree_gray, string2point_gray, point2string_gray, 20);
-	cout << endl;
-	*/
-	cout << "LBP: " << endl;
-	cout << "threshold = 20" << endl;
-	test_corectness_ratio<36>(rtree_lbp, string2point_lbp, point2string_lbp, 20);
+	test_corectness_ratio<D_lbp>(rtree_lbp, string2point_lbp, point2string_lbp, 10);
 	cout << endl;
 }
 
-int N[6] = { 1000,2000,3000,4000,5000,100000 };
+int N[6] = { 1000,2000,3000,4000,5000,10000 };
 int t[6][5];
 bool v[10000];
 Point<> p[10000];
@@ -182,6 +183,26 @@ int check(const Rect<>& rect) {
 		++ret;
 	}
 	return ret;
+}
+
+template<int Dimensions = 2>
+void problem_3(const string& filename, unordered_map<string, Point<Dimensions>>& string2point,
+	unordered_map<string, string>& point2string, RTree<Dimensions>& rtree) {
+	Point<Dimensions> p;
+	ifstream input(filename);
+	for (int j = 0; j < 5613; ++j) {
+		getline(input, name);
+		cout << name << endl;
+
+		string svec;
+		getline(input, svec);
+		p.fromString(svec);
+
+		point2string.insert(make_pair(p.toString(), name));
+		string2point.insert(make_pair(name, p));
+		rtree.Insert(p);
+	}
+	input.close();
 }
 
 int main() {
@@ -238,7 +259,7 @@ int main() {
 			}
 		}
 	*/
-
+	/*
 	for (int i = 0; i < 6; ++i) {
 		t[i][0] = user_test<4>(N[i], 10);
 		t[i][1] = user_test<8>(N[i], 10);
@@ -249,7 +270,7 @@ int main() {
 	for (int i = 0; i < 6; ++i)
 		for (int j = 0; j < 5; ++j)
 			cout << N[i] << " " << (1<<(j+2)) << " " << t[i][j] << endl;
-
+	*/
 	/*
 	RTree<2> rtree(4);
 	Point<2> p;
@@ -274,10 +295,10 @@ int main() {
 		getline(input, name);
 		cout << name << endl;
 		
-		Point<350> gradient;
-		Point<9> moment;
-		Point<256> color;
-		Point<256> gray;
+		Point<D_gradient> gradient;
+		Point<D_moment> moment;
+		Point<D_color> color;
+		Point<D_gray> gray;
 
 		string svec;
 		getline(input, svec);
@@ -309,12 +330,13 @@ int main() {
 		rtree_gray.Insert(gray);
 	}
 	input.close();
-
-	input.open("lbp.txt");
+	*/
+/*
+	ifstream input("lbp.txt");
 	for (int j = 0; j < 5613; ++j) {
 		getline(input, name);
 		cout << name << endl;
-		Point<36> lbp;
+		Point<D_lbp> lbp;
 
 		string svec;
 		getline(input, svec);
@@ -324,9 +346,16 @@ int main() {
 		string2point_lbp.insert(make_pair(name, lbp));
 		rtree_lbp.Insert(lbp);
 	}
-
+	input.close();
+*/
+	
+	problem_3<D_gradient>(file_gradient, string2point_gradient, point2string_gradient, rtree_gradient);
+	problem_3<D_moment>(file_moment, string2point_moment, point2string_moment, rtree_moment);
+	problem_3<D_color>(file_color, string2point_color, point2string_color, rtree_color);
+	problem_3<D_gray>(file_gray, string2point_gray, point2string_gray, rtree_gray);
+	problem_3<D_lbp>(file_lbp, string2point_lbp, point2string_lbp, rtree_lbp);
+	
 	cout << "insert finished!" << endl;
-
 	test_correctness_main();
 
 	
@@ -341,6 +370,6 @@ int main() {
 	point2string_color.clear();
 	point2string_gray.clear();
 	point2string_lbp.clear();
-	*/
+	
 	return 0;
 }

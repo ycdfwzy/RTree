@@ -57,13 +57,13 @@ private:
 
 template<int Dimensions = 2>
 void RTreeNode<Dimensions>::search(const Rect<Dimensions>& rec, std::vector<Rect<Dimensions>>& res) {
-	if (Cover(rec, MBR)) {
+	if (Cover<Dimensions>(rec, MBR)) {
 		res.insert(res.begin(), rects.begin(), rects.end());
 		return;
 	}
 	if (sons.size() == 0) return;
 	for (RTreeNode<Dimensions>* son : sons) {
-		if (Cross(son->MBR, rec)) {
+		if (Cross<Dimensions>(son->MBR, rec)) {
 			son->search(rec, res);
 		}
 	}
@@ -71,6 +71,7 @@ void RTreeNode<Dimensions>::search(const Rect<Dimensions>& rec, std::vector<Rect
 
 template<int Dimensions = 2>
 void RTreeNode<Dimensions>::search(const Rect<Dimensions>& rec, std::vector<Rect<Dimensions>>& res, int& access_times) {
+	//++access_times;
 	if (Cover(rec, MBR)) {
 		res.insert(res.begin(), rects.begin(), rects.end());
 		return;
