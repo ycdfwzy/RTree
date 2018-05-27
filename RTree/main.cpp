@@ -39,6 +39,8 @@ unordered_map<string, string> point2string_color;
 unordered_map<string, string> point2string_gray;
 unordered_map<string, string> point2string_lbp;
 
+unordered_map<string, int> cat;
+
 RTree<D_gradient> rtree_gradient(10);
 RTree<D_moment> rtree_moment(10);
 RTree<D_color> rtree_color(10);
@@ -79,13 +81,6 @@ int user_test(int N, int M) {
 	int tot_res_size = 0;
 	vector<Rect<features>> res;
 	for (int i = 0; i < querys; ++i) {
-		//rect.rand();
-		//for (int j = 0; j < features; ++j)
-		//	p.x[j] = 0;
-		//rect.LeftBottom = p;
-		//for (int j = 0; j < features; ++j)
-		//	p.x[j] = 30000;
-		//rect.RightTop = p;
 		rect.LeftBottom = point[rand() % N];
 		rect.RightTop = point[rand() % N];
 		for (int j = 0; j < features; ++j)
@@ -107,10 +102,13 @@ void test_corectness_ratio(RTree<Dimensions>& rtree,
 	unordered_map<string, Point<Dimensions>>& string2point,
 	unordered_map<string, string>& point2string,
 	int threshold) {
-	int hit = 0;
-	int miss = 0;
+	int cnt = 0;
+	double correct = 0;
+	double recall = 0;
 	for (auto p : string2point) {
 		//cout << " " << p.first << endl;
+		if ((++cnt) % 100 == 0)
+			cout << cnt << endl;
 		
 		vector<Point<Dimensions>> res;
 		string S(p.first);
@@ -120,9 +118,9 @@ void test_corectness_ratio(RTree<Dimensions>& rtree,
 		//rtree.KNN(threshold, p.second, res);
 		Rect<Dimensions> rect;
 		rect.LeftBottom = p.second;
-		rect.LeftBottom.move(-0.05);
+		rect.LeftBottom.move(-0.1);
 		rect.RightTop = p.second;
-		rect.RightTop.move(0.05);
+		rect.RightTop.move(0.1);
 		rtree.search(rect, res);
 
 		int N = res.size();
@@ -134,7 +132,9 @@ void test_corectness_ratio(RTree<Dimensions>& rtree,
 		for (Point<Dimensions>& rp : res)
 			rp.increase(p.second);
 
-		for (int i = 0; i < 100 && i < N; ++i) {
+		int hit = 0;
+		int miss = 0;
+		for (int i = 0; i < 200 && i < N; ++i) {
 		//for (auto s : res) {
 			Point<Dimensions>& s = res[i];
 			string pat(point2string[s.toString()]);
@@ -146,11 +146,16 @@ void test_corectness_ratio(RTree<Dimensions>& rtree,
 			else miss++;
 		}
 		hit--;
-
+		if (hit + miss > 0) {
+			correct += (double)hit / (hit + miss);
+			recall += (double)hit / cat[S];
+		}
 	}
-	cout << "total hit: " << hit << endl;
-	cout << "total miss: " << miss << endl;
-	cout << (double)hit / (double)(hit + miss) << endl;
+	//cout << "total hit: " << hit << endl;
+	//cout << "total miss: " << miss << endl;
+	//cout << (double)hit / (double)(hit + miss) << endl;
+	cout << "correct ratio: " << correct / string2point.size() << endl;
+	cout << "recall ratio: " << recall / string2point.size() << endl;
 }
 
 void test_correctness_main() {
@@ -196,8 +201,10 @@ template<int Dimensions = 2>
 void problem_3(const string& filename, unordered_map<string, Point<Dimensions>>& string2point,
 	unordered_map<string, string>& point2string, RTree<Dimensions>& rtree) {
 	Point<Dimensions> p;
+	Point<Dimensions>* point = new Point<Dimensions>[10000];
 	string name;
 	ifstream input(filename);
+	cat.clear();
 	if (input.is_open()) {
 		for (int j = 0; j < 5613; ++j) {
 			getline(input, name);
@@ -211,9 +218,24 @@ void problem_3(const string& filename, unordered_map<string, Point<Dimensions>>&
 			point2string.insert(make_pair(p.toString(), name));
 			string2point.insert(make_pair(name, p));
 			rtree.Insert(p);
+
+			while (!name.empty() && name.back() != '_')
+				name.pop_back();
+			cat[name]++;
 		}
 		input.close();
 	}
+
+	for (auto c : filename) {
+		if (c == '.') break;
+		cout << c;
+	}
+	cout << endl;
+	test_corectness_ratio<Dimensions>(rtree, string2point, point2string, 10);
+	cout << endl;
+
+	delete[] point;
+	system("pause");
 }
 
 void problem_1() {
@@ -285,7 +307,7 @@ int main() {
 			}
 		}
 	*/
-	problem_1();
+	//problem_1();
 
 	/*
 	RTree<2> rtree(4);
@@ -305,15 +327,15 @@ int main() {
 		cout << res[i].x[0] << " " << res[i].x[1] << endl;
 	*/
 
-	/*
-	problem_3<D_gradient>(file_gradient, string2point_gradient, point2string_gradient, rtree_gradient);
-	problem_3<D_moment>(file_moment, string2point_moment, point2string_moment, rtree_moment);
-	problem_3<D_color>(file_color, string2point_color, point2string_color, rtree_color);
-	problem_3<D_gray>(file_gray, string2point_gray, point2string_gray, rtree_gray);
+	
+	//problem_3<D_gradient>(file_gradient, string2point_gradient, point2string_gradient, rtree_gradient);
+	//problem_3<D_moment>(file_moment, string2point_moment, point2string_moment, rtree_moment);
+	//problem_3<D_color>(file_color, string2point_color, point2string_color, rtree_color);
+	//problem_3<D_gray>(file_gray, string2point_gray, point2string_gray, rtree_gray);
 	problem_3<D_lbp>(file_lbp, string2point_lbp, point2string_lbp, rtree_lbp);
 	
-	cout << "insert finished!" << endl;
-	test_correctness_main();
+	cout << "All finished!" << endl;
+	//test_correctness_main();
 
 	
 	string2point_gradient.clear();
@@ -327,6 +349,6 @@ int main() {
 	point2string_color.clear();
 	point2string_gray.clear();
 	point2string_lbp.clear();
-	*/
+
 	return 0;
 }
