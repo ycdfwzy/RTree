@@ -197,8 +197,8 @@ void test_correctness_main() {
 	cout << endl;
 }
 
-int N[6] = { 1000,2000,3000,4000,5000,5500 };
-int t[6][5];
+int N[11] = { 500,1000,1500,2000,2500,3000,3500,4000,4500,5000,5500 };
+int t[11][9];
 bool v[10000];
 /*
 int check(const Rect<>& rect) {
@@ -256,16 +256,20 @@ void problem_3(const string& filename, unordered_map<string, Point<Dimensions>>&
 
 void problem_1() {
 	ofstream out("prob1.txt");
-	for (int i = 0; i < 6; ++i) {
+	for (int i = 0; i < 11; ++i) {
 		t[i][0] = user_test<4>(N[i], 10);
-		t[i][1] = user_test<8>(N[i], 10);
-		t[i][2] = user_test<12>(N[i], 10);
-		t[i][3] = user_test<16>(N[i], 10);
-		t[i][4] = user_test<20>(N[i], 10);
+		t[i][1] = user_test<6>(N[i], 10);
+		t[i][2] = user_test<8>(N[i], 10);
+		t[i][3] = user_test<10>(N[i], 10);
+		t[i][4] = user_test<12>(N[i], 10);
+		t[i][5] = user_test<14>(N[i], 10);
+		t[i][6] = user_test<16>(N[i], 10);
+		t[i][7] = user_test<18>(N[i], 10);
+		t[i][8] = user_test<20>(N[i], 10);
 	}
-	for (int i = 0; i < 6; ++i)
-		for (int j = 0; j < 5; ++j)
-			out << N[i] << " " << (4*j+4) << " " << t[i][j] << endl;
+	for (int i = 0; i < 11; ++i)
+		for (int j = 0; j < 9; ++j)
+			out << N[i] << " " << (2*j+4) << " " << t[i][j] << endl;
 	out.close();
 }
 
