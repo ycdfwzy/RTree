@@ -69,23 +69,39 @@ int user_test(int N, int M) {
 	Rect<features> rect;
 	RTree<features> rtree(M);
 	Point<features> *point = new Point<features>[N];
+	ifstream input("lbp.txt");
 	for (int i = 0; i < N; ++i) {
-		p.rand();
+		string name;
+		getline(input, name);
+
+		string svec;
+		getline(input, svec);
+		p.fromString(svec);
+
 		point[i] = p;
 		rect.LeftBottom = p;
 		rect.RightTop = p;
 		rtree.Insert(rect);
 	}
+	input.close();
 
 	int tot = 0;
 	int tot_res_size = 0;
 	vector<Rect<features>> res;
 	for (int i = 0; i < querys; ++i) {
 		rect.LeftBottom = point[rand() % N];
-		rect.RightTop = point[rand() % N];
-		for (int j = 0; j < features; ++j)
-			if (rect.LeftBottom.x[j] > rect.RightTop.x[j])
-				swap(rect.LeftBottom.x[j], rect.RightTop.x[j]);
+		rect.RightTop = rect.LeftBottom;
+		rect.LeftBottom.move(-0.02);
+		rect.RightTop.move(0.02);
+		//rect.RightTop = point[rand() % N];
+		//for (int j = 0; j < features; ++j) {
+			//if (rect.LeftBottom.x[j] > rect.RightTop.x[j])
+			//	swap(rect.LeftBottom.x[j], rect.RightTop.x[j]);
+			//if (rand() & 1)
+			//	rect.LeftBottom.x[j] /= 4;
+			//if (rand() & 1)
+			//	rect.RightTop.x[j] *= 4;
+		//}
 
 		res.clear();
 		rtree.search(rect, res, tot);
@@ -181,7 +197,7 @@ void test_correctness_main() {
 	cout << endl;
 }
 
-int N[6] = { 1000,2000,3000,4000,5000,10000 };
+int N[6] = { 1000,2000,3000,4000,5000,5500 };
 int t[6][5];
 bool v[10000];
 /*
@@ -243,13 +259,13 @@ void problem_1() {
 	for (int i = 0; i < 6; ++i) {
 		t[i][0] = user_test<4>(N[i], 10);
 		t[i][1] = user_test<8>(N[i], 10);
-		t[i][2] = user_test<16>(N[i], 10);
-		t[i][3] = user_test<32>(N[i], 10);
-		t[i][4] = user_test<64>(N[i], 10);
+		t[i][2] = user_test<12>(N[i], 10);
+		t[i][3] = user_test<16>(N[i], 10);
+		t[i][4] = user_test<20>(N[i], 10);
 	}
 	for (int i = 0; i < 6; ++i)
 		for (int j = 0; j < 5; ++j)
-			out << N[i] << " " << (1 << (j + 2)) << " " << t[i][j] << endl;
+			out << N[i] << " " << (4*j+4) << " " << t[i][j] << endl;
 	out.close();
 }
 
@@ -307,7 +323,7 @@ int main() {
 			}
 		}
 	*/
-	//problem_1();
+	problem_1();
 
 	/*
 	RTree<2> rtree(4);
@@ -332,7 +348,7 @@ int main() {
 	//problem_3<D_moment>(file_moment, string2point_moment, point2string_moment, rtree_moment);
 	//problem_3<D_color>(file_color, string2point_color, point2string_color, rtree_color);
 	//problem_3<D_gray>(file_gray, string2point_gray, point2string_gray, rtree_gray);
-	problem_3<D_lbp>(file_lbp, string2point_lbp, point2string_lbp, rtree_lbp);
+	//problem_3<D_lbp>(file_lbp, string2point_lbp, point2string_lbp, rtree_lbp);
 	
 	cout << "All finished!" << endl;
 	//test_correctness_main();

@@ -83,14 +83,13 @@ void RTreeNode<Dimensions>::search(const Rect<Dimensions>& rec, std::vector<Rect
 		res.insert(res.begin(), rects.begin(), rects.end());
 		return;
 	}
-	if (rects.size() <= 30) {
+	if (rects.size() <= 1) {
 		for (auto p : rects) {
 			if (Cover(rec, p))
 				res.push_back(p);
 		}
 		return;
 	}
-
 	for (RTreeNode<Dimensions>* son : sons) {
 		++access_times;
 		if (Cross(son->MBR, rec)) {
