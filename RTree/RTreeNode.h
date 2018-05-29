@@ -83,7 +83,7 @@ void RTreeNode<Dimensions>::search(const Rect<Dimensions>& rec, std::vector<Rect
 		res.insert(res.begin(), rects.begin(), rects.end());
 		return;
 	}
-	if (rects.size() <= 1) {
+	if (rects.size() <= 5) {
 		for (auto p : rects) {
 			if (Cover(rec, p))
 				res.push_back(p);

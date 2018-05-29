@@ -42,6 +42,18 @@ public:
 			r += x[i] * x[i];
 		return r;
 	}
+	double rank1() const {
+		double r = 0;
+		for (int i = 0; i < Dimensions; ++i)
+			r += std::fabs(x[i]);
+		return r;
+	}
+	double max_d() const {
+		double r = x[0];
+		for (int i = 1; i < Dimensions; ++i)
+			r = r < x[i] ? r : x[i];
+		return r;
+	}
 	void fromString(const std::string st) {
 		int len = st.length();
 

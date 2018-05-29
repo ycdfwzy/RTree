@@ -8,12 +8,27 @@
 
 namespace MyRTree {
 
+enum Dis_Func {
+	Euclidean,
+	Manhattan,
+	Chebyshev
+};
+
 template<int Dimensions = 2>
 class RTree {
 public:
 	RTree(int M_) : M(M_) {
 		root = new RTreeNode<Dimensions>(NULL, this);
 		leaves = 0;
+	}
+	RTree(Point<Dimensions>* point, int N, int M_) : M(M_) {
+		leaves = N;
+		int depth = 0, NN = N;
+		while (NN > M) {
+			NN /= M;
+			depth++;
+		}
+		root = BuildFromArray(point, N, NULL, 0, depth);
 	}
 
 	~RTree() {
@@ -28,6 +43,17 @@ public:
 	void Insert(const Point<Dimensions>&);
 	void Delete(const Rect<Dimensions>&);
 	void KNN(int K, const Point<Dimensions>& p, std::vector<Point<Dimensions>>&);
+	void BuildFromArray(Point<Dimensions>* point, int N) {
+		delete root;
+		leaves = N;
+		int depth = 0, NN = N;
+		while (NN > M) {
+			NN /= M;
+			depth++;
+		}
+		root = BuildFromArray(point, N, NULL, 0, depth);
+	}
+	RTreeNode<Dimensions>* BuildFromArray(Point<Dimensions>* point, int N, RTreeNode<Dimensions>* par, int d, int depth);
 
 	int leaves;
 private:
@@ -143,6 +169,32 @@ void RTree<Dimensions>::KNN(int K, const Point<Dimensions>& p, std::vector<Point
 		res.pop_back();
 	for (Point<Dimensions>& rp : res)
 		rp.increase(p);
+}
+
+template<int Dimensions>
+RTreeNode<Dimensions>* RTree<Dimensions>::BuildFromArray(Point<Dimensions>* point, int N, RTreeNode<Dimensions>* par, int d, int depth) {
+	RTreeNode<Dimensions>* p = new RTreeNode<Dimensions>(par, this);
+	if (depth == 0) {
+		for (int i = 0; i < N; ++i) {
+			Rect<Dimensions> rec;
+			rec.LeftBottom = point[i];
+			rec.RightTop = point[i];
+			RTreeNode<Dimensions> *newnode = new RTreeNode<Dimensions>(rec, p, this);
+			p->addnewnode(newnode);
+		}
+		return p;
+	}
+
+	sort(point, point + N, [&](const Point<Dimensions> p1, const Point<Dimensions> p2) {
+		return p1.x[d] < p2.x[d];
+	});
+	for (int i = 0, j = 0; i < M; ++i) {
+		int k = (N - j) / (M - i);
+		RTreeNode<Dimensions> *newnode = BuildFromArray(point + j, k, p, d + 1 == Dimensions ? 0 : d + 1, depth-1);
+		j += k;
+		p->addnewnode(newnode);
+	}
+	return p;
 }
 
 }

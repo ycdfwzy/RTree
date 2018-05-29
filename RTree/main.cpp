@@ -47,6 +47,8 @@ RTree<D_color> rtree_color(10);
 RTree<D_gray> rtree_gray(10);
 RTree<D_lbp> rtree_lbp(10);
 
+ofstream prob3out("prob3.txt");
+
 template<int features>
 double Search_test_time(RTree<features>& rtree, const Rect<features>& rect, vector<Rect<features>>& res) {
 	LARGE_INTEGER winFreq;
@@ -64,13 +66,14 @@ double Search_test_time(RTree<features>& rtree, const Rect<features>& rect, vect
 }
 
 template<int features>
-int user_test(int N, int M) {
+int user_test(int N, int M, bool flag = true) { // true: build by insertion    false: build by array
 	Point<features> p;
 	Rect<features> rect;
 	RTree<features> rtree(M);
-	Point<features> *point = new Point<features>[N];
+	
+	Point<features> *point = new Point<features>[5613];
 	ifstream input("lbp.txt");
-	for (int i = 0; i < N; ++i) {
+	for (int i = 0; i < 5613; ++i) {
 		string name;
 		getline(input, name);
 
@@ -79,11 +82,23 @@ int user_test(int N, int M) {
 		p.fromString(svec);
 
 		point[i] = p;
-		rect.LeftBottom = p;
-		rect.RightTop = p;
-		rtree.Insert(rect);
+	}
+	random_shuffle(point, point+5613);
+
+	if (flag) {
+		for (int i = 0; i < N; ++i) {
+			rect.LeftBottom = point[i];
+			rect.RightTop = point[i];
+			rtree.Insert(rect);
+		}
+	}
+	else
+	{
+		rtree.BuildFromArray(point, N);
 	}
 	input.close();
+	
+	//cout << "OK" << endl;
 
 	int tot = 0;
 	int tot_res_size = 0;
@@ -91,24 +106,22 @@ int user_test(int N, int M) {
 	for (int i = 0; i < querys; ++i) {
 		rect.LeftBottom = point[rand() % N];
 		rect.RightTop = rect.LeftBottom;
+		/*
+		for (int j = 0; j < 10; ++j) {
+			int id = rand() % N;
+			for (int k = 0; k < features; ++k) {
+				rect.LeftBottom.x[k] = rect.LeftBottom.x[k] < point[id].x[k] ? rect.LeftBottom.x[k] : point[id].x[k];
+				rect.RightTop.x[k] = rect.RightTop.x[k] > point[id].x[k] ? rect.RightTop.x[k] : point[id].x[k];
+			}
+		}
+		*/
 		rect.LeftBottom.move(-0.02);
 		rect.RightTop.move(0.02);
-		//rect.RightTop = point[rand() % N];
-		//for (int j = 0; j < features; ++j) {
-			//if (rect.LeftBottom.x[j] > rect.RightTop.x[j])
-			//	swap(rect.LeftBottom.x[j], rect.RightTop.x[j]);
-			//if (rand() & 1)
-			//	rect.LeftBottom.x[j] /= 4;
-			//if (rand() & 1)
-			//	rect.RightTop.x[j] *= 4;
-		//}
 
 		res.clear();
 		rtree.search(rect, res, tot);
 		tot_res_size += res.size();
-		//tot += Search_test_time<features>(rtree, rect, res);
 	}
-	//tot /= querys;
 	delete[] point;
 	return tot / (tot_res_size / 100);
 }
@@ -117,7 +130,7 @@ template<int Dimensions = 2>
 void test_corectness_ratio(RTree<Dimensions>& rtree,
 	unordered_map<string, Point<Dimensions>>& string2point,
 	unordered_map<string, string>& point2string,
-	int threshold) {
+	Dis_Func dis_func) {
 	int cnt = 0;
 	double correct = 0;
 	double recall = 0;
@@ -139,22 +152,34 @@ void test_corectness_ratio(RTree<Dimensions>& rtree,
 		rect.RightTop.move(0.1);
 		rtree.search(rect, res);
 
-		int N = res.size();
 		for (Point<Dimensions>& rp : res)
 			rp.decrease(p.second);
-		std::sort(res.begin(), res.end(), [](const Point<Dimensions>& p1, const Point<Dimensions>& p2) {
-			return p1.rank2() < p2.rank2();
-		});
+		if (dis_func == Dis_Func::Euclidean) {
+			std::sort(res.begin(), res.end(), [](const Point<Dimensions>& p1, const Point<Dimensions>& p2) {
+				return p1.rank2() < p2.rank2();
+			});
+		} else
+		if (dis_func == Dis_Func::Manhattan) {
+			std::sort(res.begin(), res.end(), [](const Point<Dimensions>& p1, const Point<Dimensions>& p2) {
+				return p1.rank1() < p2.rank1();
+			});
+		} else
+		if (dis_func == Dis_Func::Chebyshev) {
+			std::sort(res.begin(), res.end(), [](const Point<Dimensions>& p1, const Point<Dimensions>& p2) {
+				return p1.max_d() < p2.max_d();
+			});
+		}
 		for (Point<Dimensions>& rp : res)
 			rp.increase(p.second);
 
+		int N = res.size();
 		int hit = 0;
 		int miss = 0;
 		for (int i = 0; i < 200 && i < N; ++i) {
 		//for (auto s : res) {
 			Point<Dimensions>& s = res[i];
 			string pat(point2string[s.toString()]);
-			while (pat.back() != '_')
+			while (!pat.empty() && pat.back() != '_')
 				pat.pop_back();
 			if (S.compare(pat) == 0) {
 				hit++;
@@ -170,31 +195,8 @@ void test_corectness_ratio(RTree<Dimensions>& rtree,
 	//cout << "total hit: " << hit << endl;
 	//cout << "total miss: " << miss << endl;
 	//cout << (double)hit / (double)(hit + miss) << endl;
-	cout << "correct ratio: " << correct / string2point.size() << endl;
-	cout << "recall ratio: " << recall / string2point.size() << endl;
-}
-
-void test_correctness_main() {
-	/*
-	cout << "Gradient: " << endl;
-	test_corectness_ratio<D_gradient>(rtree_gradient, string2point_gradient, point2string_gradient, 10);
-	cout << endl;
-
-	cout << "Moment: " << endl;
-	test_corectness_ratio<D_moment>(rtree_moment, string2point_moment, point2string_moment, 10);
-	cout << endl;
-	
-	cout << "Color: " << endl;
-	test_corectness_ratio<D_color>(rtree_color, string2point_color, point2string_color, 10);
-	cout << endl;
-
-	cout << "Gray: " << endl;
-	test_corectness_ratio<D_gray>(rtree_gray, string2point_gray, point2string_gray, 10);
-	cout << endl;
-	*/
-	cout << "LBP: " << endl;
-	test_corectness_ratio<D_lbp>(rtree_lbp, string2point_lbp, point2string_lbp, 10);
-	cout << endl;
+	prob3out << "correct ratio: " << correct / string2point.size() << endl;
+	prob3out << "recall ratio: " << recall / string2point.size() << endl;
 }
 
 int N[11] = { 500,1000,1500,2000,2500,3000,3500,4000,4500,5000,5500 };
@@ -215,7 +217,9 @@ int check(const Rect<>& rect) {
 */
 template<int Dimensions = 2>
 void problem_3(const string& filename, unordered_map<string, Point<Dimensions>>& string2point,
-	unordered_map<string, string>& point2string, RTree<Dimensions>& rtree) {
+	unordered_map<string, string>& point2string,
+	RTree<Dimensions>& rtree,
+	Dis_Func dis_func = Dis_Func::Euclidean) {
 	Point<Dimensions> p;
 	Point<Dimensions>* point = new Point<Dimensions>[10000];
 	string name;
@@ -239,16 +243,27 @@ void problem_3(const string& filename, unordered_map<string, Point<Dimensions>>&
 				name.pop_back();
 			cat[name]++;
 		}
+		//rtree.BuildFromArray(point, 5613);
 		input.close();
 	}
 
 	for (auto c : filename) {
 		if (c == '.') break;
-		cout << c;
+		prob3out << c;
 	}
-	cout << endl;
-	test_corectness_ratio<Dimensions>(rtree, string2point, point2string, 10);
-	cout << endl;
+	if (dis_func == Dis_Func::Euclidean) {
+		prob3out << endl << "Euclidean" << endl;
+		test_corectness_ratio<Dimensions>(rtree, string2point, point2string, Dis_Func::Euclidean);
+	} else
+	if (dis_func == Dis_Func::Manhattan) {
+		prob3out << endl << "Manhattan" << endl;
+		test_corectness_ratio<Dimensions>(rtree, string2point, point2string, Dis_Func::Manhattan);
+	} else
+	if (dis_func == Dis_Func::Chebyshev) {
+		prob3out << endl << "Chebyshev" << endl;
+		test_corectness_ratio<Dimensions>(rtree, string2point, point2string, Dis_Func::Chebyshev);
+	}
+	prob3out << endl;
 
 	delete[] point;
 	system("pause");
@@ -267,14 +282,138 @@ void problem_1() {
 		t[i][7] = user_test<18>(N[i], 10);
 		t[i][8] = user_test<20>(N[i], 10);
 	}
-	for (int i = 0; i < 11; ++i)
-		for (int j = 0; j < 9; ++j)
+	for (int j = 0; j < 9; ++j) {
+		for (int i = 1; i < 11; ++i)
 			out << N[i] << " " << (2*j+4) << " " << t[i][j] << endl;
+			//out << t[i][j] << endl;
+		out << endl;
+	}
 	out.close();
 }
 
-int main() {
-	srand(time(0));
+void buildfromarray() {
+	ofstream out("buildfromarray.txt");
+	for (int i = 0; i < 11; ++i) {
+		t[i][0] = user_test<4>(N[i], 10, false);
+		t[i][1] = user_test<6>(N[i], 10, false);
+		t[i][2] = user_test<8>(N[i], 10, false);
+		t[i][3] = user_test<10>(N[i], 10, false);
+		t[i][4] = user_test<12>(N[i], 10, false);
+		t[i][5] = user_test<14>(N[i], 10, false);
+		t[i][6] = user_test<16>(N[i], 10, false);
+		t[i][7] = user_test<18>(N[i], 10, false);
+		t[i][8] = user_test<20>(N[i], 10, false);
+	}
+	for (int j = 0; j < 9; ++j) {
+		for (int i = 1; i < 11; ++i)
+			out << N[i] << " " << (2 * j + 4) << " " << t[i][j] << endl;
+			//out << t[i][j] << endl;
+		out << endl;
+	}
+	out.close();
+}
+
+template<int Dimensions = 2>
+void query(const string& datafile, const string& queryfile,
+	unordered_map<string, Point<Dimensions>>& string2point,
+	unordered_map<string, string>& point2string,
+	RTree<Dimensions>& rtree,
+	Dis_Func dis_func = Dis_Func::Euclidean) {
+
+	Point<Dimensions> p;
+	Point<Dimensions>* point = new Point<Dimensions>[10000];
+	string name;
+	ifstream input(datafile);
+	cat.clear();
+	if (input.is_open()) {
+		for (int j = 0; j < 5613; ++j) {
+			getline(input, name);
+			cout << name << endl;
+
+			string svec;
+			getline(input, svec);
+			p.fromString(svec);
+			point[j].copy(p);
+
+			point2string.insert(make_pair(p.toString(), name));
+			string2point.insert(make_pair(name, p));
+			rtree.Insert(p);
+
+			while (!name.empty() && name.back() != '_')
+				name.pop_back();
+			cat[name]++;
+		}
+		input.close();
+	}
+	else
+	{
+		cout << "Can't open " << datafile << endl;
+		delete[] point;
+		return;
+	}
+
+	ofstream out("result.txt");
+	input.open(queryfile);
+	if (input.is_open()) {
+		while (!input.eof()) {
+			getline(input, name);
+			if (name.empty()) break;
+			cout << name << endl;
+			out << name << endl;
+			string svec;
+			getline(input, svec);
+			p.fromString(svec);
+
+			vector<Point<Dimensions>> res;
+			Rect<Dimensions> rect;
+			rect.LeftBottom = p;
+			rect.LeftBottom.move(-0.02);
+			rect.RightTop = p;
+			rect.RightTop.move(0.02);
+			rtree.search(rect, res);
+
+			for (Point<Dimensions>& rp : res)
+				rp.decrease(p);
+			if (dis_func == Dis_Func::Euclidean) {
+				std::sort(res.begin(), res.end(), [](const Point<Dimensions>& p1, const Point<Dimensions>& p2) {
+					return p1.rank2() < p2.rank2();
+				});
+			}
+			else
+			if (dis_func == Dis_Func::Manhattan) {
+				std::sort(res.begin(), res.end(), [](const Point<Dimensions>& p1, const Point<Dimensions>& p2) {
+					return p1.rank1() < p2.rank1();
+				});
+			}
+			else
+			if (dis_func == Dis_Func::Chebyshev) {
+				std::sort(res.begin(), res.end(), [](const Point<Dimensions>& p1, const Point<Dimensions>& p2) {
+					return p1.max_d() < p2.max_d();
+				});
+			}
+			for (Point<Dimensions>& rp : res)
+				rp.increase(p);
+
+			for (int i = 0; i < 10 && i < res.size(); ++i)
+				out << "	"<< point2string[res[i].toString()] << endl;
+		}
+		input.close();
+		out.close();
+	}
+	else
+	{
+		cout << "Can't open " << queryfile << endl;
+		delete[] point;
+		out.close();
+		return;
+	}
+
+	delete[] point;
+	system("pause");
+}
+
+int main(int argc, char** argv) {
+	//srand(time(0));
 	/*
 	RTree<> rtree(4);
 	memset(v, true, sizeof(v));
@@ -327,7 +466,158 @@ int main() {
 			}
 		}
 	*/
-	problem_1();
+	
+	if (argc == 1) {
+		cout << "too few arguments!" << endl;
+		return 0;
+	}
+
+	if (strcmp(argv[1], "prob1") == 0) {
+		if (argc > 2) {
+			cout << "too many arguments!" << endl;
+			return 0;
+		}
+		cout << "Please wait..." << endl;
+		problem_1();
+	} else
+	if (strcmp(argv[1], "prob3") == 0) {
+		if (argc < 3) {
+			cout << "too few arguments!" << endl;
+			return 0;
+		}
+		if (argc > 3) {
+			cout << "too many arguments!" << endl;
+			return 0;
+		}
+
+		if (strcmp(argv[2], "gradient") == 0)
+			problem_3<D_gradient>(file_gradient, string2point_gradient, point2string_gradient, rtree_gradient);
+		else
+		if (strcmp(argv[2], "moment") == 0)
+			problem_3<D_moment>(file_moment, string2point_moment, point2string_moment, rtree_moment);
+		else
+		if (strcmp(argv[2], "color") == 0)
+			problem_3<D_color>(file_color, string2point_color, point2string_color, rtree_color);
+		else
+		if (strcmp(argv[2], "gray") == 0)
+			problem_3<D_gray>(file_gray, string2point_gray, point2string_gray, rtree_gray);
+		else
+		if (strcmp(argv[2], "lbp") == 0)
+			problem_3<D_lbp>(file_lbp, string2point_lbp, point2string_lbp, rtree_lbp);
+		else
+		{
+			cout << "No found \"" << argv[2] << "\" " << endl;
+			return 0;
+		}
+	}
+	else
+	if (strcmp(argv[1], "opt2") == 0) {
+		if (argc > 1) {
+			cout << "too many arguments!" << endl;
+			return 0;
+		}
+		cout << "Please wait..." << endl;
+		buildfromarray();
+	}
+	else
+	if (strcmp(argv[1], "opt3") == 0) {
+		if (argc < 4) {
+			cout << "too few arguments!" << endl;
+			return 0;
+		}
+		if (argc > 4) {
+			cout << "too many arguments!" << endl;
+			return 0;
+		}
+
+		Dis_Func foo;
+		if (strcmp(argv[3], "Euclidean") == 0)
+			foo = Dis_Func::Euclidean;
+		else
+		if (strcmp(argv[3], "Manhattan") == 0)
+			foo = Dis_Func::Manhattan;
+		else
+		if (strcmp(argv[3], "Chebyshev") == 0)
+			foo = Dis_Func::Chebyshev;
+		else
+		{
+			cout << "Not found \"" << argv[3] << "\" " << endl;
+			return 0;
+		}
+
+		if (strcmp(argv[2], "gradient") == 0)
+			problem_3<D_gradient>(file_gradient, string2point_gradient, point2string_gradient, rtree_gradient, foo);
+		else
+			if (strcmp(argv[2], "moment") == 0)
+				problem_3<D_moment>(file_moment, string2point_moment, point2string_moment, rtree_moment, foo);
+			else
+				if (strcmp(argv[2], "color") == 0)
+					problem_3<D_color>(file_color, string2point_color, point2string_color, rtree_color, foo);
+				else
+					if (strcmp(argv[2], "gray") == 0)
+						problem_3<D_gray>(file_gray, string2point_gray, point2string_gray, rtree_gray, foo);
+					else
+						if (strcmp(argv[2], "lbp") == 0)
+							problem_3<D_lbp>(file_lbp, string2point_lbp, point2string_lbp, rtree_lbp, foo);
+						else
+						{
+							cout << "No found \"" << argv[2] << "\" " << endl;
+							return 0;
+						}
+	}
+	else
+	if (strcmp(argv[1], "query") == 0) {
+		//cout << argc << endl;
+		if (argc < 5) {
+			cout << "too few arguments!" << endl;
+			return 0;
+		}
+		if (argc > 5) {
+			cout << "too many arguments!" << endl;
+			return 0;
+		}
+
+		Dis_Func foo;
+		if (strcmp(argv[3], "Euclidean") == 0)
+			foo = Dis_Func::Euclidean;
+		else
+		if (strcmp(argv[3], "Manhattan") == 0)
+			foo = Dis_Func::Manhattan;
+		else
+		if (strcmp(argv[3], "Chebyshev") == 0)
+			foo = Dis_Func::Chebyshev;
+		else
+		{
+			cout << "Not found \"" << argv[3] << "\" " << endl;
+			return 0;
+		}
+
+		if (strcmp(argv[2], "gradient") == 0)
+			query<D_gradient>(file_gradient, string(argv[4]), string2point_gradient, point2string_gradient, rtree_gradient, foo);
+		else
+			if (strcmp(argv[2], "moment") == 0)
+				query<D_moment>(file_moment, string(argv[4]), string2point_moment, point2string_moment, rtree_moment, foo);
+			else
+				if (strcmp(argv[2], "color") == 0)
+					query<D_color>(file_color, string(argv[4]), string2point_color, point2string_color, rtree_color, foo);
+				else
+					if (strcmp(argv[2], "gray") == 0)
+						query<D_gray>(file_gray, string(argv[4]), string2point_gray, point2string_gray, rtree_gray, foo);
+					else
+						if (strcmp(argv[2], "lbp") == 0)
+							query<D_lbp>(file_lbp, string(argv[4]), string2point_lbp, point2string_lbp, rtree_lbp, foo);
+						else
+						{
+							cout << "No found \"" << argv[2] << "\" " << endl;
+							return 0;
+						}
+
+	}
+	else
+	{
+		cout << "No found \"" << argv[1] << "\" " << endl;
+		return 0;
+	}
 
 	/*
 	RTree<2> rtree(4);
@@ -347,13 +637,15 @@ int main() {
 		cout << res[i].x[0] << " " << res[i].x[1] << endl;
 	*/
 
+	/*
+	problem_3<D_gradient>(file_gradient, string2point_gradient, point2string_gradient, rtree_gradient);
+	problem_3<D_moment>(file_moment, string2point_moment, point2string_moment, rtree_moment);
+	problem_3<D_color>(file_color, string2point_color, point2string_color, rtree_color);
+	problem_3<D_gray>(file_gray, string2point_gray, point2string_gray, rtree_gray);
+	problem_3<D_lbp>(file_lbp, string2point_lbp, point2string_lbp, rtree_lbp);
+	*/
 	
-	//problem_3<D_gradient>(file_gradient, string2point_gradient, point2string_gradient, rtree_gradient);
-	//problem_3<D_moment>(file_moment, string2point_moment, point2string_moment, rtree_moment);
-	//problem_3<D_color>(file_color, string2point_color, point2string_color, rtree_color);
-	//problem_3<D_gray>(file_gray, string2point_gray, point2string_gray, rtree_gray);
-	//problem_3<D_lbp>(file_lbp, string2point_lbp, point2string_lbp, rtree_lbp);
-	
+	//buildfromarray();
 	cout << "All finished!" << endl;
 	//test_correctness_main();
 
@@ -370,5 +662,6 @@ int main() {
 	point2string_gray.clear();
 	point2string_lbp.clear();
 
+	prob3out.close();
 	return 0;
 }
